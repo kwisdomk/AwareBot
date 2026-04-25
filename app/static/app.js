@@ -24,7 +24,7 @@ const stageDisplay = document.getElementById('stage-display');
 // Initialize with greeting
 document.addEventListener('DOMContentLoaded', () => {
     stageDisplay.textContent = 'Session Active';
-    appendMessage('agent', "Welcome to AwareBot. We help you make the best market decisions. Are you a Farmer, Seller, or Mixed?");
+    appendMessage('agent', "Welcome to AwareBot. We help you make the best market decisions. Choose your role:\n1. Farmer\n2. Seller\n3. Mixed");
 });
 
 // Auto-scroll to bottom
