@@ -24,7 +24,7 @@ const stageDisplay = document.getElementById('stage-display');
 // Initialize with greeting
 document.addEventListener('DOMContentLoaded', () => {
     stageDisplay.textContent = 'Session Active';
-    appendMessage('agent', "Welcome to Soko Akili. We help you make the best market decisions. Are you a Farmer, Seller, or Mixed?");
+    appendMessage('agent', "Welcome to AwareBot. We help you make the best market decisions. Are you a Farmer, Seller, or Mixed?");
 });
 
 // Auto-scroll to bottom
@@ -122,7 +122,7 @@ chatForm.addEventListener('submit', async (e) => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                user_id: sessionId,
+                session_id: sessionId,
                 message: text
             })
         });

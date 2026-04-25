@@ -13,7 +13,7 @@ load_dotenv()
 if not os.getenv("GOOGLE_API_KEY"):
     raise RuntimeError("GOOGLE_API_KEY missing in environment")
 
-app = FastAPI(title="Soko Akili", description="Intent-aware market decision agent for Kenyan farmers.")
+app = FastAPI(title="AwareBot", description="Intent-aware market decision agent for Kenyan farmers.")
 
 # Mount static directory
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
