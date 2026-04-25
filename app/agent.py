@@ -76,10 +76,23 @@ CROP PRICE RANGES:
 {json.dumps(prices, indent=2)}
 """
 
-    client = get_client()
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=full_input
-    )
-
-    return safe_parse(response.text)
+    try:
+        client = get_client()
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=full_input
+        )
+        return safe_parse(response.text)
+    except Exception as e:
+        # Fallback decision if Gemini fails (Quota or Network)
+        return {
+            "decision": "WAIT",
+            "mode": "ERROR_FALLBACK",
+            "reasoning": [
+                "Gemini is currently over quota or unavailable.",
+                f"Diagnostic: {str(e)[:100]}"
+            ],
+            "market_context": "System is currently using localized fallback logic.",
+            "if_wait": "AI services will resume shortly.",
+            "negotiation_script": "Samahani, soko imetingwa kwa sasa. Hebu tuonane baadaye kidogo."
+        }
