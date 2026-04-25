@@ -70,7 +70,7 @@ def chat(payload: ChatRequest):
             session_id=payload.session_id,
             stage="error",
             type="error",
-            message=f"Backend Error: {str(e)}"
+            message="Market service temporarily busy. Please try again shortly."
         )
 
 @app.get("/start/{session_id}")

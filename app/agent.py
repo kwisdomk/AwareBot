@@ -89,10 +89,10 @@ CROP PRICE RANGES:
             "decision": "WAIT",
             "mode": "ERROR_FALLBACK",
             "reasoning": [
-                "Gemini is currently over quota or unavailable.",
-                f"Diagnostic: {str(e)[:100]}"
+                "Market service is temporarily busy.",
+                "AI guidance is currently running in fallback mode."
             ],
-            "market_context": "System is currently using localized fallback logic.",
-            "if_wait": "AI services will resume shortly.",
+            "market_context": "The system is currently using localized market trends while Gemini recovers.",
+            "if_wait": "Try again in a few minutes for real-time AI synthesis.",
             "negotiation_script": "Samahani, soko imetingwa kwa sasa. Hebu tuonane baadaye kidogo."
         }

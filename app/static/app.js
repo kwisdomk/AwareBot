@@ -15,16 +15,16 @@ if (!sessionId) {
 
 // Options Data
 const ONBOARDING_OPTIONS = {
-    1: [
-        { label: "1. Farmer", value: "1" },
-        { label: "2. Seller", value: "2" },
-        { label: "3. Mixed", value: "3" }
+    "1": [
+        { label: "Farmer", value: "1" },
+        { label: "Seller", value: "2" },
+        { label: "Mixed", value: "3" }
     ],
-    2: [
-        { label: "1. Profit", value: "1" },
-        { label: "2. Emergency", value: "2" },
-        { label: "3. Clearing", value: "3" },
-        { label: "4. Info", value: "4" }
+    "2": [
+        { label: "Profit", value: "1" },
+        { label: "Emergency", value: "2" },
+        { label: "Clearing", value: "3" },
+        { label: "Info", value: "4" }
     ]
 };
 
@@ -39,7 +39,7 @@ const stageDisplay = document.getElementById('stage-display');
 // Initialize with greeting
 document.addEventListener('DOMContentLoaded', () => {
     stageDisplay.textContent = 'Session Active';
-    appendMessage('agent', "Welcome to AwareBot. We help you make the best market decisions. Choose your role:", ONBOARDING_OPTIONS[1]);
+    appendMessage('agent', "Welcome to AwareBot. We help you make the best market decisions. Choose your role:", ONBOARDING_OPTIONS["1"]);
 });
 
 // Auto-scroll to bottom
@@ -60,6 +60,9 @@ function appendMessage(sender, text, options = null) {
     messageList.appendChild(msgDiv);
 
     if (options && Array.isArray(options)) {
+        // Disable any previous option containers before showing new ones
+        disableCurrentOptions();
+
         const optionsDiv = document.createElement('div');
         optionsDiv.className = 'options-container';
         
@@ -68,9 +71,8 @@ function appendMessage(sender, text, options = null) {
             btn.className = 'option-btn';
             btn.textContent = opt.label;
             btn.onclick = () => {
-                optionsDiv.style.opacity = '0.5';
-                optionsDiv.style.pointerEvents = 'none';
-                handleUserInput(opt.label); // Send the label or value
+                disableCurrentOptions();
+                handleUserInput(opt.label);
             };
             optionsDiv.appendChild(btn);
         });
@@ -78,6 +80,15 @@ function appendMessage(sender, text, options = null) {
     }
     
     scrollToBottom();
+}
+
+function disableCurrentOptions() {
+    const containers = document.querySelectorAll('.options-container:not(.disabled)');
+    containers.forEach(c => {
+        c.classList.add('disabled');
+        c.style.opacity = '0.4';
+        c.style.pointerEvents = 'none';
+    });
 }
 
 // Render the Agent's Decision JSON as a beautiful card
@@ -131,16 +142,22 @@ function appendDecisionCard(data) {
 async function handleUserInput(text) {
     if (!text) return;
 
+    // Lock input during processing
+    messageInput.disabled = true;
+    messageInput.placeholder = "Thinking...";
+
     // 1. Show user message
     appendMessage('user', text);
     messageInput.value = '';
     
-    // Check for restart to clear session locally
+    // Check for restart
     if (text.toLowerCase() === 'restart' || text.toLowerCase() === 'anza upya') {
         sessionId = generateUUID();
         localStorage.setItem('soko_session_id', sessionId);
         stageDisplay.textContent = 'Session Active';
-        appendMessage('agent', "Restarting... Choose your role:", ONBOARDING_OPTIONS[1]);
+        messageInput.disabled = false;
+        messageInput.placeholder = "Type your response...";
+        appendMessage('agent', "Restarting... Choose your role:", ONBOARDING_OPTIONS["1"]);
         return;
     }
 
@@ -164,25 +181,35 @@ async function handleUserInput(text) {
         typingIndicator.style.display = 'none';
 
         // Update stage display
-        stageDisplay.textContent = `Stage: ${data.stage}`;
+        stageDisplay.textContent = `Flow: ${data.stage === 'done' ? 'Complete' : 'Step ' + data.stage}`;
 
         // Render response
-        if (typeof data.message === 'string') {
+        if (data.type === 'onboarding') {
             const nextOptions = ONBOARDING_OPTIONS[data.stage];
             appendMessage('agent', data.message, nextOptions);
-        } else if (typeof data.message === 'object') {
+        } else if (data.type === 'ai_response') {
             appendDecisionCard(data.message);
+        } else if (data.type === 'error') {
+            appendMessage('agent', "⚠️ " + data.message);
         }
 
     } catch (error) {
         typingIndicator.style.display = 'none';
-        appendMessage('agent', "Sorry, I encountered an error connecting to the market.");
+        appendMessage('agent', "Sorry, the market service is temporarily unavailable. Please try again.");
         console.error(error);
+    } finally {
+        messageInput.disabled = false;
+        messageInput.placeholder = "Type your response...";
+        scrollToBottom();
+        // focus input for better UX
+        messageInput.focus();
     }
 }
 
 // Handle Form Submission
 chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    handleUserInput(messageInput.value.trim());
+    if (!messageInput.disabled) {
+        handleUserInput(messageInput.value.trim());
+    }
 });
