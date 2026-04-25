@@ -13,6 +13,21 @@ if (!sessionId) {
     localStorage.setItem('soko_session_id', sessionId);
 }
 
+// Options Data
+const ONBOARDING_OPTIONS = {
+    1: [
+        { label: "1. Farmer", value: "1" },
+        { label: "2. Seller", value: "2" },
+        { label: "3. Mixed", value: "3" }
+    ],
+    2: [
+        { label: "1. Profit", value: "1" },
+        { label: "2. Emergency", value: "2" },
+        { label: "3. Clearing", value: "3" },
+        { label: "4. Info", value: "4" }
+    ]
+};
+
 // DOM Elements
 const chatContainer = document.getElementById('chat-container');
 const messageList = document.getElementById('message-list');
@@ -24,7 +39,7 @@ const stageDisplay = document.getElementById('stage-display');
 // Initialize with greeting
 document.addEventListener('DOMContentLoaded', () => {
     stageDisplay.textContent = 'Session Active';
-    appendMessage('agent', "Welcome to AwareBot. We help you make the best market decisions. Choose your role:\n1. Farmer\n2. Seller\n3. Mixed");
+    appendMessage('agent', "Welcome to AwareBot. We help you make the best market decisions. Choose your role:", ONBOARDING_OPTIONS[1]);
 });
 
 // Auto-scroll to bottom
@@ -32,8 +47,8 @@ function scrollToBottom() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Render plain text message
-function appendMessage(sender, text) {
+// Render plain text message + buttons
+function appendMessage(sender, text, options = null) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${sender}`;
     
@@ -43,6 +58,25 @@ function appendMessage(sender, text) {
     
     msgDiv.appendChild(bubble);
     messageList.appendChild(msgDiv);
+
+    if (options && Array.isArray(options)) {
+        const optionsDiv = document.createElement('div');
+        optionsDiv.className = 'options-container';
+        
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = opt.label;
+            btn.onclick = () => {
+                optionsDiv.style.opacity = '0.5';
+                optionsDiv.style.pointerEvents = 'none';
+                handleUserInput(opt.label); // Send the label or value
+            };
+            optionsDiv.appendChild(btn);
+        });
+        messageList.appendChild(optionsDiv);
+    }
+    
     scrollToBottom();
 }
 
@@ -93,10 +127,8 @@ function appendDecisionCard(data) {
     scrollToBottom();
 }
 
-// Handle Form Submission
-chatForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const text = messageInput.value.trim();
+// Core Input Handler
+async function handleUserInput(text) {
     if (!text) return;
 
     // 1. Show user message
@@ -105,35 +137,30 @@ chatForm.addEventListener('submit', async (e) => {
     
     // Check for restart to clear session locally
     if (text.toLowerCase() === 'restart' || text.toLowerCase() === 'anza upya') {
-        sessionId = generateUUID(); // Reset local session id to force backend reset conceptually
+        sessionId = generateUUID();
         localStorage.setItem('soko_session_id', sessionId);
+        stageDisplay.textContent = 'Session Active';
+        appendMessage('agent', "Restarting... Choose your role:", ONBOARDING_OPTIONS[1]);
+        return;
     }
 
     // 2. Show typing indicator
     typingIndicator.style.display = 'flex';
-    messageList.appendChild(typingIndicator); // Move to bottom
+    messageList.appendChild(typingIndicator);
     scrollToBottom();
 
     // 3. Send to API
     try {
         const response = await fetch('/chat', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 session_id: sessionId,
                 message: text
             })
         });
 
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
-        }
-
         const data = await response.json();
-        
-        // Hide typing indicator
         typingIndicator.style.display = 'none';
 
         // Update stage display
@@ -141,14 +168,21 @@ chatForm.addEventListener('submit', async (e) => {
 
         // Render response
         if (typeof data.message === 'string') {
-            appendMessage('agent', data.message);
+            const nextOptions = ONBOARDING_OPTIONS[data.stage];
+            appendMessage('agent', data.message, nextOptions);
         } else if (typeof data.message === 'object') {
             appendDecisionCard(data.message);
         }
 
     } catch (error) {
         typingIndicator.style.display = 'none';
-        appendMessage('agent', "Sorry, I encountered a network error connecting to the market.");
+        appendMessage('agent', "Sorry, I encountered an error connecting to the market.");
         console.error(error);
     }
+}
+
+// Handle Form Submission
+chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleUserInput(messageInput.value.trim());
 });
