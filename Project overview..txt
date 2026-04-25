@@ -1,0 +1,136 @@
+One Line
+
+An intent-aware market negotiation agent that gives Kenyan smallholder farmers and sellers different decisions based on why they're selling — not just what they're selling.
+
+
+The Problem
+Same tomatoes. Same market. Same price.
+
+Farmer A needs cash today (emergency)     → should sell now at 45 KES
+Farmer B wants maximum profit             → should wait, negotiate at 95 KES
+
+Every existing tool gives them the same answer.
+Soko Akili doesn't.
+
+The Solution
+A conversational agent — accessible via web UI — that:
+
+Understands who you are (farmer, seller, mixed)
+Understands why you're selling (profit, emergency, clearing stock)
+Reads market signals (season, supply, fuel trend)
+Produces a decision, not just information
+
+
+Architecture
+User (Web UI)
+      │
+      ▼
+FastAPI Backend
+      │
+      ├── State Machine (3-turn onboarding)
+      │     Stage 1: Who are you?
+      │     Stage 2: Why selling?
+      │     Stage 3: What + where?
+      │
+      ├── Mock Data Layer
+      │     ├── crop_prices.json (location-aware)
+      │     └── market_signals.json (season, supply, fuel)
+      │
+      ├── Google ADK Agent
+      │     ├── Tool: get_market_price(crop, location)
+      │     ├── Tool: read_signals()
+      │     └── Tool: log_deal(session_id, context)
+      │
+      └── Gemini Flash
+            └── Synthesizes context → structured decision output
+                  │
+                  ▼
+            DECISION: SELL NOW / WAIT / NEGOTIATE
+            MODE: Emergency / Profit / Clearing
+            WHY: [2 signal-based reasons]
+            MARKET CONTEXT: [current conditions]
+            IF YOU WAIT: [short projection]
+            NEGOTIATION SCRIPT: [Sheng/Swahili]
+
+Tech Stack
+LayerToolAgent FrameworkGoogle ADKLLMGemini FlashBackendFastAPIMock DataJSON filesDeploymentGoogle Cloud RunVersion ControlGitHub (public)Dev/TestingGoogle AI Studio
+
+Core Data
+3 seller types:
+
+Farmer (growing, pre-sale)
+Seller (kibanda, buying to resell)
+Mixed (grows and sells directly)
+
+3 intents:
+
+Profit (maximize price)
+Emergency (cash today)
+Clearing (move stock fast)
+
+3 market signals:
+
+Season (post_harvest / lean)
+Supply (high / normal / low)
+Fuel trend (rising / stable / falling)
+
+Mock crops (Coast region):
+
+Mahindi (maize)
+Nyanya (tomatoes)
+Sukuma wiki
+Nazi (coconut)
+Muhogo (cassava)
+
+
+The Competitive Edge
+Intent        →    Decision
+─────────────────────────────
+Emergency     →    SELL NOW
+                   "Accept 45+, don't wait"
+
+Profit        →    WAIT / NEGOTIATE
+                   "Counter at 95, supply drops in 2 weeks"
+
+Clearing      →    WHOLESALE
+                   "Sell batch, lose less per kg, move fast"
+Same goods. Same market. Three completely different outputs.
+That's the product.
+
+User Flow
+Turn 1:  "Wewe ni nani?" → picks seller type
+Turn 2:  "Kwa nini unataka kuuza?" → picks intent
+Turn 3:  "Una nini + uko wapi?" → declares goods + location
+         [reset anytime: "restart" / "anza upya"]
+              │
+              ▼
+         Structured JSON → ADK Agent → Gemini Flash
+              │
+              ▼
+         Decision output (structured, localized)
+              │
+              ▼
+         Deal logged to session ledger
+
+Demo Script (30 seconds)
+"Same tomatoes. Same market. Watch what changes."
+
+Demo 1: Profit intent
+→ DECISION: WAIT
+→ "Prices rising in 2 weeks. Counter at 95 KES."
+
+Demo 2: Emergency intent (only change)
+→ DECISION: SELL NOW  
+→ "Accept 45+. Don't negotiate. Move today."
+
+Pause.
+
+"The system doesn't predict prices.
+ It understands decisions."
+
+Deployment
+bashgcloud run deploy soko-akili \
+  --source . \
+  --region africa-south1 \
+  --allow-unauthenticated \
+  --set-env-vars GOOGLE_API_KEY=xxx
