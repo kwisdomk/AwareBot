@@ -4,14 +4,25 @@ from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
 
-load_dotenv()
+_client = None
 
-# --- Path resolution (safe regardless of working directory) ---
+def get_client():
+    global _client
+    if _client is None:
+        # Explicitly load .env from project root
+        ROOT_DIR = Path(__file__).parent.parent
+        load_dotenv(ROOT_DIR / ".env")
+        
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY missing in environment. Please ensure .env exists in the project root.")
+        
+        _client = genai.Client(api_key=api_key)
+    return _client
+
+# --- Path resolution ---
 DATA_DIR = Path(__file__).parent / "data"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system_prompt.txt"
-
-# --- Gemini client ---
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
 def safe_parse(response: str) -> dict:
@@ -65,6 +76,7 @@ CROP PRICE RANGES:
 {json.dumps(prices, indent=2)}
 """
 
+    client = get_client()
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=full_input

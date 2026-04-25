@@ -7,6 +7,7 @@ import os
 from app.state import handle, get
 from app.agent import run_agent
 from typing import Union
+import traceback
 
 load_dotenv()
 
@@ -34,15 +35,15 @@ class ChatResponse(BaseModel):
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(payload: ChatRequest):
-    session_id = payload.session_id
-    message = payload.message
+    try:
+        session_id = payload.session_id
+        message = payload.message
 
-    result = handle(session_id, message)
-    current_state = get(session_id)
+        result = handle(session_id, message)
+        current_state = get(session_id)
 
-    # Onboarding complete → run agent
-    if isinstance(result, dict):
-        try:
+        # Onboarding complete → run agent
+        if isinstance(result, dict):
             decision = run_agent(result)
             return ChatResponse(
                 session_id=session_id,
@@ -50,18 +51,24 @@ def chat(payload: ChatRequest):
                 type="ai_response",
                 message=decision
             )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
 
-    if not result:
-        result = "⚠️ Something went wrong. Try again."
+        if not result:
+            result = "⚠️ Something went wrong. Try again."
 
-    return ChatResponse(
-        session_id=session_id,
-        stage=str(current_state["stage"]),
-        type="onboarding",
-        message=result
-    )
+        return ChatResponse(
+            session_id=session_id,
+            stage=str(current_state["stage"]),
+            type="onboarding",
+            message=result
+        )
+    except Exception as e:
+        traceback.print_exc()
+        return ChatResponse(
+            session_id=payload.session_id,
+            stage="error",
+            type="error",
+            message=f"Backend Error: {str(e)}"
+        )
 
 @app.get("/start/{session_id}")
 def start(session_id: str):
